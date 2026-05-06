@@ -21,7 +21,7 @@
         .form-container {
             background-color: white;
             padding: 30px;
-            width: 1050px; 
+            width: 1100px; 
             margin-left: auto;
             margin-right: auto;
         }
@@ -37,8 +37,8 @@
             padding: 4px;
             text-align: center;
             vertical-align: middle;
-            height: 45px;
-            overflow: hidden;
+            height: 50px;
+            overflow: visible; /* 改為可見，方便下拉選單顯示 */
         }
 
         /* 統一選單與輸入框樣式 */
@@ -58,6 +58,15 @@
             display: block;
             line-height: 1.5;
             font-size: 13px;
+        }
+
+        .type-select {
+            font-size: 11px;
+            background-color: #fffbeb;
+            border: 1px solid #fcd34d !important;
+            border-radius: 4px;
+            height: 24px;
+            margin-top: 2px;
         }
 
         /* 針對 Firefox 的修正 */
@@ -96,7 +105,7 @@
 </head>
 <body class="p-4">
 
-    <div class="max-w-6xl mx-auto">
+    <div class="max-w-7xl mx-auto">
         <!-- 操作按鈕區 -->
         <div class="mb-6 flex flex-wrap gap-4 no-print-area">
             <button onclick="exportToImage()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded shadow-md transition flex items-center gap-2">
@@ -115,7 +124,7 @@
             <!-- 公司標題 -->
             <div class="text-center mb-4">
                 <h2 class="text-2xl font-bold text-gray-800">大量科技股份有限公司</h2>
-                <h1 class="text-xl font-bold text-gray-700">加班申請單 (แบบฟอร์มขอทำงานล่วงเวลา)</h1>
+                <h1 class="text-xl font-bold text-gray-700">加班申請單 (แบบ傳ฟอร์มขอทำงานล่วงเวลา)</h1>
             </div>
 
             <!-- 日期與部門欄位 -->
@@ -135,10 +144,10 @@
                     <tr>
                         <th class="w-20 font-bold">工號<br><span class="text-[9px] text-gray-500 font-normal">รหัสพนักงาน</span></th>
                         <th class="w-24 font-bold">姓名<br><span class="text-[9px] text-gray-500 font-normal">ชื่อ</span></th>
-                        <th class="w-20 font-bold">月/日<br><span class="text-[9px] text-gray-500 font-normal">เดือน/วัน</span></th>
+                        <th class="w-28 font-bold">月/日<br><span class="text-[9px] text-gray-500 font-normal">เดือน/วัน</span></th>
                         <th class="w-48 font-bold" colspan="2">開始/結束時間 (24H)<br><span class="text-[9px] text-gray-500 font-normal">เวลาเริ่มต้น - สิ้นสุด</span></th>
                         <th class="w-16 font-bold">時數<br><span class="text-[9px] text-gray-500 font-normal">ชม.</span></th>
-                        <th class="w-44 font-bold">工作內容<br><span class="text-[9px] text-gray-500 font-normal">ทำงายอะไร</span></th>
+                        <th class="w-40 font-bold">工作內容<br><span class="text-[9px] text-gray-500 font-normal">ทำงายอะไร</span></th>
                         <th class="font-bold">備註 (支援泰文自動翻譯)<br><span class="text-[9px] text-gray-500 font-normal">หมายเหตุ (แปลอัตโนมัติ)</span></th>
                     </tr>
                 </thead>
@@ -149,8 +158,9 @@
 
             <!-- 表格底部的生成時間與說明 -->
             <div class="mt-8 flex justify-between items-end px-2">
-                <div class="text-[11px] text-gray-500 italic">
-                    * 系統自動扣除重疊之午休 (12:00-13:00) 與 休息 (17:00-17:30) 時段。
+                <div class="text-[11px] text-blue-700 font-bold">
+                    * 13056 扣除邏輯：平日(12-13, 15-15:30) / 假日(12-13, 17-17:30)<br>
+                    * 其他工號扣除邏輯：(12-13, 17-17:30)
                 </div>
                 <div class="text-[10px] text-gray-400 text-right italic">
                     Generated on: <span id="gen-time"></span>
@@ -228,7 +238,13 @@
                     <td class="bg-gray-50">
                         <input type="text" class="emp-name" readonly placeholder="-">
                     </td>
-                    <td><input type="text" class="ot-day" placeholder="MM/DD"></td>
+                    <td class="flex flex-col items-center justify-center">
+                        <input type="text" class="ot-day" placeholder="MM/DD">
+                        <select class="day-type-select type-select hidden" onchange="calculateRowHours(this)">
+                            <option value="平日">平日วันธรรมดา</option>
+                            <option value="假日">假日วันหยุด</option>
+                        </select>
+                    </td>
                     <td class="w-24">
                         <select class="start-time font-mono" onchange="calculateRowHours(this)">
                             <option value="">開始เริ่ม</option>
@@ -269,20 +285,33 @@
 
         function handleRowEmpChange(selectElement) {
             const row = selectElement.closest('tr');
+            const empId = selectElement.value;
             const nameInput = row.querySelector('.emp-name');
-            nameInput.value = empMap[selectElement.value] || "";
+            const dayTypeSelect = row.querySelector('.day-type-select');
+            
+            nameInput.value = empMap[empId] || "";
+
+            // 針對 13056 (娜萌Mon) 顯示平日/假日選單
+            if (empId === "13056") {
+                dayTypeSelect.classList.remove('hidden');
+            } else {
+                dayTypeSelect.classList.add('hidden');
+                dayTypeSelect.value = "平日"; // 其他工號預設平日
+            }
+
             calculateRowHours(row.querySelector('.start-time'));
         }
 
         // 時數計算邏輯：自動判定並扣除休息時段
-        function calculateRowHours(selectElement) {
-            const row = selectElement.closest('tr');
+        function calculateRowHours(element) {
+            const row = element.closest('tr');
+            const empId = row.querySelector('.emp-id').value;
             const startStr = row.querySelector('.start-time').value;
             const endStr = row.querySelector('.end-time').value;
             const totalInput = row.querySelector('.total-hours');
+            const dayType = row.querySelector('.day-type-select').value;
 
             if (startStr && endStr) {
-                // 將時間字串轉換為分鐘數進行計算
                 const toMin = (t) => {
                     const [h, m] = t.split(':').map(Number);
                     return h * 60 + m;
@@ -291,7 +320,6 @@
                 let startMin = toMin(startStr);
                 let endMin = toMin(endStr);
 
-                // 處理跨日邏輯
                 if (endMin <= startMin) {
                     endMin += 24 * 60;
                 }
@@ -299,21 +327,38 @@
                 let totalMin = endMin - startMin;
 
                 // 定義應扣除的休息區間 (分鐘)
-                const breaks = [
-                    { name: 'Lunch', start: 12 * 60, end: 13 * 60 },      // 12:00-13:00 (60分鐘)
-                    { name: 'TeaTime', start: 17 * 60, end: 17 * 60 + 30 } // 17:00-17:30 (30分鐘)
-                ];
+                let breaks = [];
+
+                if (empId === "13056") {
+                    if (dayType === "平日") {
+                        // 娜萌 平日：12-13 與 15-15:30
+                        breaks = [
+                            { start: 12 * 60, end: 13 * 60 },
+                            { start: 15 * 60, end: 15 * 60 + 30 }
+                        ];
+                    } else {
+                        // 娜萌 假日：12-13 與 17-17:30
+                        breaks = [
+                            { start: 12 * 60, end: 13 * 60 },
+                            { start: 17 * 60, end: 17 * 60 + 30 }
+                        ];
+                    }
+                } else {
+                    // 其他人（預設）：12-13 與 17-17:30
+                    breaks = [
+                        { start: 12 * 60, end: 13 * 60 },
+                        { start: 17 * 60, end: 17 * 60 + 30 }
+                    ];
+                }
 
                 let deductionMin = 0;
                 breaks.forEach(b => {
-                    // 計算目前加班時段與休息時段的重疊分鐘數
                     const overlapStart = Math.max(startMin, b.start);
                     const overlapEnd = Math.min(endMin, b.end);
                     if (overlapEnd > overlapStart) {
                         deductionMin += (overlapEnd - overlapStart);
                     }
                     
-                    // 同時考慮跨日後可能再次遇到的休息時段
                     const bNextDayStart = b.start + 24 * 60;
                     const bNextDayEnd = b.end + 24 * 60;
                     const overlapStartNext = Math.max(startMin, bNextDayStart);
@@ -352,10 +397,14 @@
             rows.forEach(row => {
                 const id = row.querySelector('.emp-id').value;
                 if (id) {
+                    const dayVal = row.querySelector('.ot-day').value;
+                    const dayType = row.querySelector('.day-type-select').value;
+                    const displayDay = id === "13056" ? `${dayVal} (${dayType})` : dayVal;
+
                     dataRows.push([
                         id,
                         row.querySelector('.emp-name').value,
-                        row.querySelector('.ot-day').value,
+                        displayDay,
                         row.querySelector('.start-time').value,
                         row.querySelector('.end-time').value,
                         row.querySelector('.total-hours').value,
