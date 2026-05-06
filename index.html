@@ -38,7 +38,7 @@
             text-align: center;
             vertical-align: middle;
             height: 50px;
-            overflow: visible; /* 改為可見，方便下拉選單顯示 */
+            overflow: visible; 
         }
 
         /* 統一選單與輸入框樣式 */
@@ -159,7 +159,7 @@
             <!-- 表格底部的生成時間與說明 -->
             <div class="mt-8 flex justify-between items-end px-2">
                 <div class="text-[11px] text-blue-700 font-bold">
-                    * 13056 扣除邏輯：平日(12-13, 15-15:30) / 假日(12-13, 17-17:30)<br>
+                    * 13056 扣除邏輯：平日(12-13, 15-15:30) / 假日(7:30-8, 12-13, 17-17:30)<br>
                     * 其他工號扣除邏輯：(12-13, 17-17:30)
                 </div>
                 <div class="text-[10px] text-gray-400 text-right italic">
@@ -247,13 +247,13 @@
                     </td>
                     <td class="w-24">
                         <select class="start-time font-mono" onchange="calculateRowHours(this)">
-                            <option value="">開始เริ่ม</option>
+                            <option value="">開始開始</option>
                             ${generateTimeOptions()}
                         </select>
                     </td>
                     <td class="w-24">
                         <select class="end-time font-mono" onchange="calculateRowHours(this)">
-                            <option value="">結束สิ้นสุด</option>
+                            <option value="">結束結束</option>
                             ${generateTimeOptions()}
                         </select>
                     </td>
@@ -337,8 +337,9 @@
                             { start: 15 * 60, end: 15 * 60 + 30 }
                         ];
                     } else {
-                        // 娜萌 假日：12-13 與 17-17:30
+                        // 娜萌 假日：7:30-8, 12-13 與 17-17:30
                         breaks = [
+                            { start: 7 * 60 + 30, end: 8 * 60 },
                             { start: 12 * 60, end: 13 * 60 },
                             { start: 17 * 60, end: 17 * 60 + 30 }
                         ];
