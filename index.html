@@ -231,7 +231,7 @@
                 tr.innerHTML = `
                     <td>
                         <select class="emp-id" onchange="handleRowEmpChange(this)">
-                            <option value="">請選擇</option>
+                            <option value="">選擇เลือก</option>
                             ${Object.keys(empMap).map(id => `<option value="${id}">${id}</option>`).join('')}
                         </select>
                     </td>
@@ -247,13 +247,13 @@
                     </td>
                     <td class="w-24">
                         <select class="start-time font-mono" onchange="calculateRowHours(this)">
-                            <option value="">開始開始</option>
+                            <option value="">開始เริ่ม</option>
                             ${generateTimeOptions()}
                         </select>
                     </td>
                     <td class="w-24">
                         <select class="end-time font-mono" onchange="calculateRowHours(this)">
-                            <option value="">結束結束</option>
+                            <option value="">結束สิ้นสุด</option>
                             ${generateTimeOptions()}
                         </select>
                     </td>
@@ -262,11 +262,11 @@
                     </td>
                     <td>
                         <select class="job-desc">
-                            <option value="">請選擇</option>
+                            <option value="">選擇เลือก</option>
                             ${jobOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
                         </select>
                     </td>
-                    <td><input type="text" class="remarks" onblur="handleTranslation(this)" placeholder="輸入泰文自動翻譯"></td>
+                    <td><input type="text" class="remarks" onblur="handleTranslation(this)" placeholder="輸入泰文自動翻譯เขียนเป็นภาษาไทย"></td>
                 `;
                 tbody.appendChild(tr);
             }
