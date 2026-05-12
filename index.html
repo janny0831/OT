@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>加班申請單 - Firebase 自動儲存版</title>
+    <title>加班申請單 - Firebase 自動儲存修復版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -26,7 +26,7 @@
             <button onclick="window.exportToImage()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded shadow-md transition">匯出圖片 (Export Image)</button>
             <button onclick="window.exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow-md transition">匯出 Excel (Export XLSX)</button>
             <button onclick="window.print()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded shadow-md transition">列印 (Print)</button>
-            <button onclick="window.clearAllData()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow-md transition">一鍵清空 (ล้างข้อมูล)</button>
+            <button onclick="window.clearAllData()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow-md transition font-bold">一鍵清空 (ล้างข้อมูล)</button>
             <div id="save-loader" class="flex items-center text-gray-500 text-sm italic ml-4 opacity-0 transition-opacity">
                 <svg class="animate-spin h-4 w-4 mr-2 text-indigo-500" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 雲端同步中...
@@ -69,7 +69,7 @@
                     * 13056 扣除邏輯：平日(12-13, 15-15:30) / 假日(7:30-8, 12-13, 17-17:30)<br>
                     * 其他工號扣除邏輯：(12-13, 17-17:30)
                 </div>
-                <div class="text-[10px] text-gray-400 text-right italic">Last Sync: <span id="gen-time">-</span></div>
+                <div class="text-[10px] text-gray-400 text-right italic">最後同步時間: <span id="gen-time">-</span></div>
             </div>
         </div>
     </div>
@@ -95,7 +95,39 @@
         const empMap = { "13031": "阿凱Krai", "13056": "娜萌Mon" };
         const jobOptions = ["管理部/แผนกบริหาร", "支援資材部/แผนกวัสดุ", "支援生產部/แผนกผลิต"];
 
-        // 核心計算邏輯
+        // [核心功能] 渲染表格行
+        window.renderTable = function(rowsData = []) {
+            const tbody = document.getElementById('ot-tbody');
+            tbody.innerHTML = "";
+            for (let i = 0; i < 10; i++) {
+                const d = rowsData[i] || {};
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><select class="emp-id" onchange="window.handleRowEmpChange(this)">
+                        <option value="">選擇</option>
+                        ${Object.keys(empMap).map(id => `<option value="${id}" ${d.id==id?'selected':''}>${id}</option>`).join('')}
+                    </select></td>
+                    <td class="bg-gray-50"><input type="text" class="emp-name" readonly value="${empMap[d.id] || ''}"></td>
+                    <td class="flex flex-col items-center justify-center">
+                        <input type="text" class="ot-day" value="${d.day || ''}" placeholder="MM/DD">
+                        <select class="day-type-select type-select ${d.id==='13056'?'':'hidden'}" onchange="window.calculateRowHours(this); window.triggerAutoSave()">
+                            <option value="平日" ${d.type==='平日'?'selected':''}>平日</option>
+                            <option value="假日" ${d.type==='假日'?'selected':''}>假日</option>
+                        </select>
+                    </td>
+                    <td><select class="start-time font-mono" onchange="window.calculateRowHours(this); window.triggerAutoSave()">
+                        <option value="">開始</option>${window.generateOptions(d.start)}</select></td>
+                    <td><select class="end-time font-mono" onchange="window.calculateRowHours(this); window.triggerAutoSave()">
+                        <option value="">結束</option>${window.generateOptions(d.end)}</select></td>
+                    <td class="bg-blue-50"><input type="number" class="total-hours font-bold text-blue-700" value="${d.hours || ''}" readonly></td>
+                    <td><select class="job-desc" onchange="window.triggerAutoSave()"><option value="">選擇</option>
+                        ${jobOptions.map(opt => `<option value="${opt}" ${d.job==opt?'selected':''}>${opt}</option>`).join('')}</select></td>
+                    <td><input type="text" class="remarks" onblur="window.handleTranslation(this)" value="${d.rem || ''}"></td>
+                `;
+                tbody.appendChild(tr);
+            }
+        };
+
         window.calculateRowHours = function(element) {
             const row = element.closest('tr');
             const empId = row.querySelector('.emp-id').value;
@@ -123,19 +155,17 @@
             }
         };
 
-        // 自動儲存邏輯 (Debounce 防抖)
+        // [核心功能] 自動儲存
         let saveTimeout;
         window.triggerAutoSave = function() {
-            const status = document.getElementById('sync-status');
-            const loader = document.getElementById('save-loader');
-            status.innerText = "○ 正在偵測變更...";
-            status.style.color = "#f59e0b";
-            loader.style.opacity = "1";
+            document.getElementById('sync-status').innerText = "○ 正在偵測變更...";
+            document.getElementById('sync-status').style.color = "#f59e0b";
+            document.getElementById('save-loader').style.opacity = "1";
 
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(async () => {
                 await window.performSave();
-            }, 800); // 停止輸入 0.8 秒後儲存
+            }, 800);
         };
 
         window.performSave = async function() {
@@ -164,51 +194,38 @@
                 document.getElementById('save-loader').style.opacity = "0";
                 document.getElementById('gen-time').innerText = new Date().toLocaleString();
             } catch (e) {
-                document.getElementById('sync-status').innerText = "× 儲存失敗，請檢查連線";
-                document.getElementById('sync-status').style.color = "#ef4444";
+                console.error("Save Error:", e);
+                document.getElementById('sync-status').innerText = "× 儲存失敗";
             }
         };
 
-        // 初始化與讀取
+        // [核心功能] 初始化載入
         window.initTable = async function() {
             const snap = await getDoc(docRef);
-            const cloudData = snap.exists() ? snap.data() : null;
-            if (cloudData) {
-                document.getElementById('doc_date').value = cloudData.date;
+            if (snap.exists()) {
+                const cloudData = snap.data();
+                document.getElementById('doc_date').value = cloudData.date || "";
+                window.renderTable(cloudData.rows || []);
                 document.getElementById('gen-time').innerText = new Date(cloudData.lastUpdated).toLocaleString();
-            }
-
-            const tbody = document.getElementById('ot-tbody');
-            tbody.innerHTML = "";
-            for (let i = 0; i < 10; i++) {
-                const d = (cloudData && cloudData.rows && cloudData.rows[i]) ? cloudData.rows[i] : {};
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><select class="emp-id" onchange="window.handleRowEmpChange(this)">
-                        <option value="">選擇</option>
-                        ${Object.keys(empMap).map(id => `<option value="${id}" ${d.id==id?'selected':''}>${id}</option>`).join('')}
-                    </select></td>
-                    <td class="bg-gray-50"><input type="text" class="emp-name" readonly value="${empMap[d.id] || ''}"></td>
-                    <td class="flex flex-col items-center justify-center">
-                        <input type="text" class="ot-day" value="${d.day || ''}" placeholder="MM/DD">
-                        <select class="day-type-select type-select ${d.id==='13056'?'':'hidden'}" onchange="window.calculateRowHours(this); window.triggerAutoSave()">
-                            <option value="平日" ${d.type==='平日'?'selected':''}>平日</option>
-                            <option value="假日" ${d.type==='假日'?'selected':''}>假日</option>
-                        </select>
-                    </td>
-                    <td><select class="start-time font-mono" onchange="window.calculateRowHours(this); window.triggerAutoSave()">
-                        <option value="">開始</option>${window.generateOptions(d.start)}</select></td>
-                    <td><select class="end-time font-mono" onchange="window.calculateRowHours(this); window.triggerAutoSave()">
-                        <option value="">結束</option>${window.generateOptions(d.end)}</select></td>
-                    <td class="bg-blue-50"><input type="number" class="total-hours font-bold text-blue-700" value="${d.hours || ''}" readonly></td>
-                    <td><select class="job-desc" onchange="window.triggerAutoSave()"><option value="">選擇</option>
-                        ${jobOptions.map(opt => `<option value="${opt}" ${d.job==opt?'selected':''}>${opt}</option>`).join('')}</select></td>
-                    <td><input type="text" class="remarks" onblur="window.handleTranslation(this)" value="${d.rem || ''}"></td>
-                `;
-                tbody.appendChild(tr);
+            } else {
+                window.renderTable([]);
             }
         };
 
+        // [修復功能] 一鍵清空
+        window.clearAllData = async function() {
+            if (confirm("確定要清空所有資料嗎？這也會同步清空雲端資料。")) {
+                // 1. 清空 UI
+                document.getElementById('doc_date').value = "";
+                window.renderTable([]); // 傳入空陣列，渲染空白行
+                
+                // 2. 立即執行儲存 (覆蓋雲端)
+                await window.performSave();
+                alert("雲端資料已清空。");
+            }
+        };
+
+        // 其他輔助函式
         window.generateOptions = (val) => {
             let opt = '';
             for(let h=0; h<24; h++) for(let m=0; m<60; m+=30) {
@@ -259,13 +276,6 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "OT");
             XLSX.writeFile(wb, "加班單.xlsx");
-        };
-
-        window.clearAllData = () => { 
-            if(confirm("確定要清空所有資料嗎？這也會同步清空雲端資料。")) { 
-                document.getElementById('doc_date').value=""; 
-                window.initTable().then(() => window.performSave()); 
-            } 
         };
 
         window.initTable();
