@@ -4,15 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>加班申請單 - Overtime Request Form</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- html2canvas for Image Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- SheetJS for Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Sans+Thai:wght@400;700&display=swap');
-        
         body {
             font-family: 'Noto Sans TC', 'Noto Sans Thai', sans-serif;
             background-color: #f3f4f6;
@@ -38,7 +34,7 @@
             text-align: center;
             vertical-align: middle;
             height: 50px;
-            overflow: visible; 
+            overflow: visible;
         }
 
         /* 統一選單與輸入框樣式 */
@@ -106,7 +102,6 @@
 <body class="p-4">
 
     <div class="max-w-7xl mx-auto">
-        <!-- 操作按鈕區 -->
         <div class="mb-6 flex flex-wrap gap-4 no-print-area">
             <button onclick="exportToImage()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded shadow-md transition flex items-center gap-2">
                 匯出圖片 (Export Image)
@@ -117,21 +112,20 @@
             <button onclick="window.print()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded shadow-md transition flex items-center gap-2">
                 列印 (Print)
             </button>
-            <!-- 新增一鍵清空功能 -->
             <button onclick="clearAllData()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow-md transition flex items-center gap-2">
                 一鍵清空 (ล้างข้อมูลทั้งหมด)
             </button>
+            <button id="save-btn" onclick="saveToFirebase()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded shadow-md transition flex items-center gap-2">
+                儲存至雲端 (บันทึกข้อมูล)
+            </button>
         </div>
 
-        <!-- 表單主體 -->
         <div id="ot-form" class="form-container shadow-xl">
-            <!-- 公司標題 -->
             <div class="text-center mb-4">
                 <h2 class="text-2xl font-bold text-gray-800">大量科技股份有限公司</h2>
-                <h1 class="text-xl font-bold text-gray-700">加班申請單 (แบบ傳ฟอร์มขอทำงานล่วงเวลา)</h1>
+                <h1 class="text-xl font-bold text-gray-700">加班申請單 (แบบฟอร์มขอทำงานล่วงเวลา)</h1>
             </div>
 
-            <!-- 日期與部門欄位 -->
             <div class="flex justify-between mb-4 px-2">
                 <div class="flex items-center">
                     <span class="font-bold mr-2 text-sm">日期 (วันที่):</span>
@@ -142,7 +136,6 @@
                 </div>
             </div>
 
-            <!-- 表格內容 -->
             <table>
                 <thead class="bg-gray-100 text-[12px]">
                     <tr>
@@ -156,11 +149,9 @@
                     </tr>
                 </thead>
                 <tbody id="ot-tbody">
-                    <!-- JS 將生成 10 行 -->
-                </tbody>
+                    </tbody>
             </table>
 
-            <!-- 表格底部的生成時間與說明 -->
             <div class="mt-8 flex justify-between items-end px-2">
                 <div class="text-[11px] text-blue-700 font-bold">
                     * 13056 扣除邏輯：平日(12-13, 15-15:30) / 假日(7:30-8, 12-13, 17-17:30)<br>
@@ -281,7 +272,6 @@
         function clearAllData() {
             // 清除單據日期
             document.getElementById('doc_date').value = "";
-            
             // 遍歷所有行，恢復初始值
             const rows = document.querySelectorAll('#ot-tbody tr');
             rows.forEach(row => {
@@ -319,7 +309,6 @@
             const dayTypeSelect = row.querySelector('.day-type-select');
             
             nameInput.value = empMap[empId] || "";
-
             // 針對 13056 (娜萌Mon) 顯示平日/假日選單
             if (empId === "13056") {
                 dayTypeSelect.classList.remove('hidden');
@@ -339,7 +328,6 @@
             const endStr = row.querySelector('.end-time').value;
             const totalInput = row.querySelector('.total-hours');
             const dayType = row.querySelector('.day-type-select').value;
-
             if (startStr && endStr) {
                 const toMin = (t) => {
                     const [h, m] = t.split(':').map(Number);
@@ -348,25 +336,20 @@
 
                 let startMin = toMin(startStr);
                 let endMin = toMin(endStr);
-
                 if (endMin <= startMin) {
                     endMin += 24 * 60;
                 }
 
                 let totalMin = endMin - startMin;
-
                 // 定義應扣除的休息區間 (分鐘)
                 let breaks = [];
-
                 if (empId === "13056") {
                     if (dayType === "平日") {
-                        // 娜萌 平日：12-13 與 15-15:30
                         breaks = [
                             { start: 12 * 60, end: 13 * 60 },
                             { start: 15 * 60, end: 15 * 60 + 30 }
                         ];
                     } else {
-                        // 娜萌 假日：7:30-8, 12-13 與 17-17:30
                         breaks = [
                             { start: 7 * 60 + 30, end: 8 * 60 },
                             { start: 12 * 60, end: 13 * 60 },
@@ -374,7 +357,6 @@
                         ];
                     }
                 } else {
-                    // 其他人（預設）：12-13 與 17-17:30
                     breaks = [
                         { start: 12 * 60, end: 13 * 60 },
                         { start: 17 * 60, end: 17 * 60 + 30 }
@@ -397,7 +379,6 @@
                         deductionMin += (overlapEndNext - overlapStartNext);
                     }
                 });
-
                 const finalHours = (totalMin - deductionMin) / 60;
                 totalInput.value = finalHours >= 0 ? finalHours.toFixed(1) : "0.0";
             }
@@ -443,7 +424,6 @@
                     ]);
                 }
             });
-
             const tableData = [
                 ["大量科技股份有限公司"],
                 ["加班申請單 (แบบฟอร์มขอทำงานล่วงเวลา)"],
@@ -458,6 +438,88 @@
         }
 
         initTable();
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 載入你的 Firebase 配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-PCNtremx3bmUZk-tk7LLo-zuIaD4yn8",
+            authDomain: "thailand-26530.firebaseapp.com",
+            projectId: "thailand-26530",
+            storageBucket: "thailand-26530.firebasestorage.app",
+            messagingSenderId: "383864827104",
+            appId: "1:383864827104:web:3dfcebf1045debf494f485",
+            measurementId: "G-HCRB6KC4CN"
+        };
+
+        // 初始化 Firebase 與 Firestore
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // 將儲存函數掛載到 window，以便被 HTML 按鈕的 onclick 呼叫
+        window.saveToFirebase = async function() {
+            const date = document.getElementById('doc_date').value;
+            
+            // 基礎檢查：確認是否有填寫日期
+            if (!date) {
+                alert("請先選擇單據日期 (กรุณาเลือกวันที่เอกสาร)");
+                return;
+            }
+
+            const rows = document.querySelectorAll('#ot-tbody tr');
+            const dataToSave = [];
+            
+            // 收集有填寫工號的列資料
+            rows.forEach(row => {
+                const id = row.querySelector('.emp-id').value;
+                if (id) {
+                    dataToSave.push({
+                        empId: id,
+                        empName: row.querySelector('.emp-name').value,
+                        otDay: row.querySelector('.ot-day').value,
+                        dayType: row.querySelector('.day-type-select') ? row.querySelector('.day-type-select').value : '平日',
+                        startTime: row.querySelector('.start-time').value,
+                        endTime: row.querySelector('.end-time').value,
+                        totalHours: row.querySelector('.total-hours').value,
+                        jobDesc: row.querySelector('.job-desc').value,
+                        remarks: row.querySelector('.remarks').value
+                    });
+                }
+            });
+
+            if (dataToSave.length === 0) {
+                alert("表格中無任何加班資料 (ไม่มีข้อมูลการทำงานล่วงเวลาในตาราง)");
+                return;
+            }
+
+            // 改變按鈕狀態以防重複點擊
+            const saveBtn = document.getElementById('save-btn');
+            const originalText = saveBtn.innerText;
+            saveBtn.innerText = "儲存中 (กำลังบันทึก)...";
+            saveBtn.disabled = true;
+
+            try {
+                // 將整份單據包裝為一個 Document 寫入 Firestore 的 overtime_records 集合
+                await addDoc(collection(db, "overtime_records"), {
+                    documentDate: date,
+                    records: dataToSave,
+                    createdAt: serverTimestamp(),
+                    department: "管理部"
+                });
+                
+                alert("資料已成功儲存至雲端資料庫！(บันทึกข้อมูลลงฐานข้อมูลสำเร็จ!)");
+            } catch (error) {
+                console.error("Firebase 儲存失敗: ", error);
+                alert("儲存失敗，請檢查網路連線或資料庫權限設定。\n(บันทึกไม่สำเร็จ: " + error.message + ")");
+            } finally {
+                // 恢復按鈕狀態
+                saveBtn.innerText = originalText;
+                saveBtn.disabled = false;
+            }
+        };
     </script>
 </body>
 </html>
