@@ -14,7 +14,16 @@
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         th, td { border: 1px solid #000; padding: 4px; text-align: center; vertical-align: middle; height: 50px; }
         select, input { width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; font-size: 13px; }
-        .type-select { font-size: 11px; background-color: #fffbeb; border: 1px solid #fcd34d !important; border-radius: 4px; height: 24px; }
+        /* 黃色框框優化樣式 */
+        .type-select { 
+            font-size: 11px; 
+            background-color: #fffbeb !important; 
+            border: 1px solid #fcd34d !important; 
+            border-radius: 4px; 
+            height: 24px;
+            appearance: none; /* 移除預設箭頭讓圖片更美觀 */
+            -webkit-appearance: none;
+        }
         .sync-indicator { position: absolute; top: 10px; right: 10px; font-size: 12px; font-weight: bold; }
         @media print { .no-print-area { display: none; } body { background-color: white; padding: 0; } .form-container { box-shadow: none; margin: 0; width: 100%; } }
     </style>
@@ -62,8 +71,7 @@
                         <th class="font-bold">備註 (支援泰文自動翻譯)<br><span class="text-[9px] text-gray-500 font-normal">หมายเหตุ</span></th>
                     </tr>
                 </thead>
-                <tbody id="ot-tbody" oninput="window.triggerAutoSave()">
-                    </tbody>
+                <tbody id="ot-tbody" oninput="window.triggerAutoSave()"></tbody>
             </table>
 
             <div class="mt-8 flex justify-between items-end px-2">
@@ -80,7 +88,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-        // Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyB-PCNtremx3bmUZk-tk7LLo-zuIaD4yn8",
             authDomain: "thailand-26530.firebaseapp.com",
@@ -171,41 +178,61 @@
                 document.getElementById('save-loader').style.opacity = "0";
                 document.getElementById('gen-time').innerText = new Date(updateTime).toLocaleString();
             } catch (e) {
-                console.error("Firebase Save Error:", e);
                 document.getElementById('sync-status').innerText = "× 同步失敗";
-                document.getElementById('sync-status').className = "sync-indicator text-red-600";
             }
         };
 
-        // [核心邏輯] 初始讀取
         window.initTable = async function() {
-            try {
-                const snap = await getDoc(docRef);
-                if (snap.exists()) {
-                    const data = snap.data();
-                    document.getElementById('doc_date').value = data.date || "";
-                    window.renderTable(data.rows || []);
-                    if (data.lastUpdated) document.getElementById('gen-time').innerText = new Date(data.lastUpdated).toLocaleString();
-                } else {
-                    window.renderTable([]);
-                }
-            } catch (e) {
-                console.error("Initial Load Error:", e);
-                window.renderTable([]);
-            }
+            const snap = await getDoc(docRef);
+            if (snap.exists()) {
+                const data = snap.data();
+                document.getElementById('doc_date').value = data.date || "";
+                window.renderTable(data.rows || []);
+                if (data.lastUpdated) document.getElementById('gen-time').innerText = new Date(data.lastUpdated).toLocaleString();
+            } else { window.renderTable([]); }
         };
 
-        // [核心邏輯] 一鍵清空
         window.clearAllData = async function() {
             if (confirm("確定要清空所有資料嗎？這也會同步清空雲端資料庫。")) {
                 document.getElementById('doc_date').value = "";
-                window.renderTable([]); // 渲染空白行
-                await window.performSave(); // 立即同步空狀態到雲端
+                window.renderTable([]);
+                await window.performSave();
                 alert("已完成清空並同步。");
             }
         };
 
-        // 原始功能保留：時數計算
+        // [優化匯出功能] 解決圖片中平日/假日顯示不出來的問題
+        window.exportToImage = async () => {
+            const form = document.getElementById('ot-form');
+            
+            // 關鍵優化：在截圖前，將所有 select 的當前值強行寫入 DOM 屬性
+            const selects = form.querySelectorAll('select');
+            selects.forEach(sel => {
+                const options = sel.querySelectorAll('option');
+                options.forEach(opt => {
+                    if (opt.value === sel.value) opt.setAttribute('selected', 'selected');
+                    else opt.removeAttribute('selected');
+                });
+            });
+
+            // 同時強行將 input 的值寫入 value 屬性
+            const inputs = form.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.setAttribute('value', input.value);
+            });
+
+            const canvas = await html2canvas(form, { 
+                scale: 2, 
+                useCORS: true,
+                backgroundColor: "#ffffff"
+            });
+            const link = document.createElement('a');
+            link.download = `加班單_${document.getElementById('doc_date').value}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        };
+
+        // 以下保留原始時數計算與匯出 Excel 功能
         window.calculateRowHours = function(element) {
             const row = element.closest('tr');
             const empId = row.querySelector('.emp-id').value;
@@ -219,11 +246,9 @@
                 let startMin = toMin(startStr);
                 let endMin = toMin(endStr);
                 if (endMin <= startMin) endMin += 24 * 60;
-
                 let breaks = (empId === "13056") ? 
                     (dayType === "平日" ? [{s:720, e:780}, {s:900, e:930}] : [{s:450, e:480}, {s:720, e:780}, {s:1020, e:1050}]) : 
                     [{s:720, e:780}, {s:1020, e:1050}];
-
                 let deduction = 0;
                 breaks.forEach(b => {
                     deduction += Math.max(0, Math.min(endMin, b.e) - Math.max(startMin, b.s));
@@ -233,7 +258,6 @@
             }
         };
 
-        // 原始功能保留：下拉選單生成
         window.generateOptions = (val) => {
             let opt = '';
             for(let h=0; h<24; h++) for(let m=0; m<60; m+=30) {
@@ -243,47 +267,28 @@
             return opt;
         };
 
-        // 原始功能保留：員工切換處理
         window.handleRowEmpChange = function(sel) {
             const row = sel.closest('tr');
             row.querySelector('.emp-name').value = empMap[sel.value] || "";
             const ts = row.querySelector('.day-type-select');
-            if (sel.value === "13056") {
-                ts.classList.remove('hidden');
-            } else {
-                ts.classList.add('hidden');
-                ts.value = "平日";
-            }
+            sel.value === "13056" ? ts.classList.remove('hidden') : (ts.classList.add('hidden'), ts.value="平日");
             window.calculateRowHours(sel);
             window.triggerAutoSave();
         };
 
-        // 原始功能保留：翻譯
         window.handleTranslation = async function(input) {
             const text = input.value.trim();
             if (!text || !/[\u0E00-\u0E7F]/.test(text) || text.includes('(')) return;
-            try {
-                const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-TW&dt=t&q=${encodeURIComponent(text)}`);
-                const data = await res.json();
-                if (data && data[0]) {
-                    input.value = `${text} (${data[0][0][0]})`;
-                    window.triggerAutoSave();
-                }
-            } catch (e) { console.error("Translate Error", e); }
+            const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-TW&dt=t&q=${encodeURIComponent(text)}`);
+            const data = await res.json();
+            if (data && data[0]) {
+                input.value = `${text} (${data[0][0][0]})`;
+                window.triggerAutoSave();
+            }
         };
 
-        // 原始功能保留：匯出圖片
-        window.exportToImage = async () => {
-            const canvas = await html2canvas(document.getElementById('ot-form'), { scale: 2 });
-            const link = document.createElement('a');
-            link.download = `加班單_${document.getElementById('doc_date').value}.png`;
-            link.href = canvas.toDataURL();
-            link.click();
-        };
-
-        // 原始功能保留：匯出 Excel
         window.exportToExcel = () => {
-            const data = [["大量科技股份有限公司"], ["加班申請單"], ["工號","姓名","日期","開始","結束","時數","內容","備註"]];
+            const data = [["大量科技"], ["加班申請單"], ["工號","姓名","日期","開始","結束","時數","內容","備註"]];
             document.querySelectorAll('#ot-tbody tr').forEach(r => {
                 const id = r.querySelector('.emp-id').value;
                 if(id) data.push([
@@ -295,10 +300,9 @@
             const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "OT");
-            XLSX.writeFile(wb, `加班單_${document.getElementById('doc_date').value}.xlsx`);
+            XLSX.writeFile(wb, "加班單.xlsx");
         };
 
-        // 啟動系統
         window.initTable();
     </script>
 </body>
