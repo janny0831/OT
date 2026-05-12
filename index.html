@@ -3,47 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>加班申請單 - Firebase 雲端版</title>
+    <title>加班申請單 - Firebase 自動儲存版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Sans+Thai:wght@400;700&display=swap');
-        body { font-family: 'Noto Sans TC', 'Noto Sans Thai', sans-serif; background-color: #f3f4f6; } /* [cite: 2, 3] */
-        .form-container { background-color: white; padding: 30px; width: 1100px; margin: 20px auto; } /* [cite: 4] */
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; } /* [cite: 5] */
-        th, td { border: 1px solid #000; padding: 4px; text-align: center; vertical-align: middle; height: 50px; } /* [cite: 6, 7] */
-        select, input { width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; font-size: 13px; } /* [cite: 8, 9] */
-        .type-select { font-size: 11px; background-color: #fffbeb; border: 1px solid #fcd34d !important; border-radius: 4px; height: 24px; } /* [cite: 10, 11] */
-        .no-print-area { display: flex; } /* [cite: 13] */
-        .translating { background-color: #f0f9ff !important; color: #0369a1; font-style: italic; } /* [cite: 14] */
-        @media print { .no-print-area { display: none; } body { background-color: white; padding: 0; } .form-container { box-shadow: none; margin: 0; width: 100%; } } /* [cite: 15, 16, 17] */
+        body { font-family: 'Noto Sans TC', 'Noto Sans Thai', sans-serif; background-color: #f3f4f6; }
+        .form-container { background-color: white; padding: 30px; width: 1100px; margin: 20px auto; position: relative; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th, td { border: 1px solid #000; padding: 4px; text-align: center; vertical-align: middle; height: 50px; }
+        select, input { width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; font-size: 13px; }
+        .type-select { font-size: 11px; background-color: #fffbeb; border: 1px solid #fcd34d !important; border-radius: 4px; height: 24px; }
+        .auto-save-status { position: absolute; top: 10px; right: 10px; font-size: 12px; color: #10b981; font-weight: bold; }
+        @media print { .no-print-area { display: none; } body { background-color: white; padding: 0; } .form-container { box-shadow: none; margin: 0; width: 100%; } }
     </style>
 </head>
 <body class="p-4">
 
     <div class="max-w-7xl mx-auto">
         <div class="mb-6 flex flex-wrap gap-4 no-print-area">
-            <button onclick="window.saveToFirebase()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded shadow-md transition font-bold">
-                ☁ 儲存至雲端 (Save to Cloud)
-            </button>
             <button onclick="window.exportToImage()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded shadow-md transition">匯出圖片 (Export Image)</button>
             <button onclick="window.exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow-md transition">匯出 Excel (Export XLSX)</button>
             <button onclick="window.print()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded shadow-md transition">列印 (Print)</button>
             <button onclick="window.clearAllData()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow-md transition">一鍵清空 (ล้างข้อมูล)</button>
+            <div id="save-loader" class="flex items-center text-gray-500 text-sm italic ml-4 opacity-0 transition-opacity">
+                <svg class="animate-spin h-4 w-4 mr-2 text-indigo-500" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                雲端同步中...
+            </div>
         </div>
 
         <div id="ot-form" class="form-container shadow-xl">
+            <div id="sync-status" class="auto-save-status">● 已與雲端同步</div>
+            
             <div class="text-center mb-4">
                 <h2 class="text-2xl font-bold text-gray-800">大量科技股份有限公司</h2>
-                <h1 class="text-xl font-bold text-gray-700">加班申請單 (แบบ傳ฟอร์มขอทำงานล่วงเวลา)</h1>
+                <h1 class="text-xl font-bold text-gray-700">加班申請單 (แบบฟอร์มขอทำงานล่วงเวลา)</h1>
             </div>
 
             <div class="flex justify-between mb-4 px-2">
                 <div class="flex items-center">
                     <span class="font-bold mr-2 text-sm">日期 (วันที่):</span>
-                    <input type="date" id="doc_date" class="border-b border-black w-40 text-left px-2 h-auto"> </div>
-                <div><span class="font-bold text-gray-800 underline text-sm">單位：管理部 (Unit: HR Department)</span></div> </div>
+                    <input type="date" id="doc_date" class="border-b border-black w-40 text-left px-2 h-auto" onchange="window.triggerAutoSave()">
+                </div>
+                <div><span class="font-bold text-gray-800 underline text-sm">單位：管理部 (Unit: HR Department)</span></div>
+            </div>
 
             <table>
                 <thead class="bg-gray-100 text-[12px]">
@@ -53,17 +57,20 @@
                         <th class="w-28 font-bold">月/日<br><span class="text-[9px] text-gray-500 font-normal">เดือน/วัน</span></th>
                         <th class="w-48 font-bold" colspan="2">開始/結束時間 (24H)<br><span class="text-[9px] text-gray-500 font-normal">เวลาเริ่มต้น - สิ้นสุด</span></th>
                         <th class="w-16 font-bold">時數<br><span class="text-[9px] text-gray-500 font-normal">ชม.</span></th>
-                        <th class="w-40 font-bold">工作內容<br><span class="text-[9px] text-gray-500 font-normal">ทำงายอะไร</span></th>
+                        <th class="w-40 font-bold">工作內容<br><span class="text-[9px] text-gray-500 font-normal">ทำงานอะไร</span></th>
                         <th class="font-bold">備註 (支援泰文自動翻譯)<br><span class="text-[9px] text-gray-500 font-normal">หมายเหตุ</span></th>
                     </tr>
                 </thead>
-                <tbody id="ot-tbody"></tbody> </table>
+                <tbody id="ot-tbody" oninput="window.triggerAutoSave()"></tbody>
+            </table>
 
             <div class="mt-8 flex justify-between items-end px-2">
                 <div class="text-[11px] text-blue-700 font-bold">
                     * 13056 扣除邏輯：平日(12-13, 15-15:30) / 假日(7:30-8, 12-13, 17-17:30)<br>
-                    * 其他工號扣除邏輯：(12-13, 17-17:30) </div>
-                <div class="text-[10px] text-gray-400 text-right italic">Generated on: <span id="gen-time"></span></div> </div>
+                    * 其他工號扣除邏輯：(12-13, 17-17:30)
+                </div>
+                <div class="text-[10px] text-gray-400 text-right italic">Last Sync: <span id="gen-time">-</span></div>
+            </div>
         </div>
     </div>
 
@@ -71,7 +78,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-        // 您提供的 Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyB-PCNtremx3bmUZk-tk7LLo-zuIaD4yn8",
             authDomain: "thailand-26530.firebaseapp.com",
@@ -86,11 +92,10 @@
         const db = getFirestore(app);
         const docRef = doc(db, "ot_data", "current_sheet");
 
-        // 原始定義資料 [cite: 29, 30]
         const empMap = { "13031": "阿凱Krai", "13056": "娜萌Mon" };
         const jobOptions = ["管理部/แผนกบริหาร", "支援資材部/แผนกวัสดุ", "支援生產部/แผนกผลิต"];
 
-        // 核心計算邏輯保留 [cite: 66, 72, 76]
+        // 核心計算邏輯
         window.calculateRowHours = function(element) {
             const row = element.closest('tr');
             const empId = row.querySelector('.emp-id').value;
@@ -118,8 +123,22 @@
             }
         };
 
-        // Firebase 儲存功能
-        window.saveToFirebase = async function() {
+        // 自動儲存邏輯 (Debounce 防抖)
+        let saveTimeout;
+        window.triggerAutoSave = function() {
+            const status = document.getElementById('sync-status');
+            const loader = document.getElementById('save-loader');
+            status.innerText = "○ 正在偵測變更...";
+            status.style.color = "#f59e0b";
+            loader.style.opacity = "1";
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                await window.performSave();
+            }, 800); // 停止輸入 0.8 秒後儲存
+        };
+
+        window.performSave = async function() {
             const rows = [];
             document.querySelectorAll('#ot-tbody tr').forEach(tr => {
                 rows.push({
@@ -133,22 +152,36 @@
                     rem: tr.querySelector('.remarks').value
                 });
             });
+
             try {
-                await setDoc(docRef, { date: document.getElementById('doc_date').value, rows: rows });
-                alert("✅ 資料已成功儲存至雲端！");
-            } catch (e) { alert("❌ 儲存失敗：" + e.message); }
+                await setDoc(docRef, { 
+                    date: document.getElementById('doc_date').value, 
+                    rows: rows,
+                    lastUpdated: new Date().toISOString()
+                });
+                document.getElementById('sync-status').innerText = "● 已自動儲存至雲端";
+                document.getElementById('sync-status').style.color = "#10b981";
+                document.getElementById('save-loader').style.opacity = "0";
+                document.getElementById('gen-time').innerText = new Date().toLocaleString();
+            } catch (e) {
+                document.getElementById('sync-status').innerText = "× 儲存失敗，請檢查連線";
+                document.getElementById('sync-status').style.color = "#ef4444";
+            }
         };
 
-        // 初始化與讀取 [cite: 41, 60]
+        // 初始化與讀取
         window.initTable = async function() {
             const snap = await getDoc(docRef);
             const cloudData = snap.exists() ? snap.data() : null;
-            if (cloudData) document.getElementById('doc_date').value = cloudData.date;
+            if (cloudData) {
+                document.getElementById('doc_date').value = cloudData.date;
+                document.getElementById('gen-time').innerText = new Date(cloudData.lastUpdated).toLocaleString();
+            }
 
             const tbody = document.getElementById('ot-tbody');
             tbody.innerHTML = "";
             for (let i = 0; i < 10; i++) {
-                const d = (cloudData && cloudData.rows[i]) ? cloudData.rows[i] : {};
+                const d = (cloudData && cloudData.rows && cloudData.rows[i]) ? cloudData.rows[i] : {};
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td><select class="emp-id" onchange="window.handleRowEmpChange(this)">
@@ -158,17 +191,17 @@
                     <td class="bg-gray-50"><input type="text" class="emp-name" readonly value="${empMap[d.id] || ''}"></td>
                     <td class="flex flex-col items-center justify-center">
                         <input type="text" class="ot-day" value="${d.day || ''}" placeholder="MM/DD">
-                        <select class="day-type-select type-select ${d.id==='13056'?'':'hidden'}" onchange="window.calculateRowHours(this)">
+                        <select class="day-type-select type-select ${d.id==='13056'?'':'hidden'}" onchange="window.calculateRowHours(this); window.triggerAutoSave()">
                             <option value="平日" ${d.type==='平日'?'selected':''}>平日</option>
                             <option value="假日" ${d.type==='假日'?'selected':''}>假日</option>
                         </select>
                     </td>
-                    <td><select class="start-time font-mono" onchange="window.calculateRowHours(this)">
+                    <td><select class="start-time font-mono" onchange="window.calculateRowHours(this); window.triggerAutoSave()">
                         <option value="">開始</option>${window.generateOptions(d.start)}</select></td>
-                    <td><select class="end-time font-mono" onchange="window.calculateRowHours(this)">
+                    <td><select class="end-time font-mono" onchange="window.calculateRowHours(this); window.triggerAutoSave()">
                         <option value="">結束</option>${window.generateOptions(d.end)}</select></td>
                     <td class="bg-blue-50"><input type="number" class="total-hours font-bold text-blue-700" value="${d.hours || ''}" readonly></td>
-                    <td><select class="job-desc"><option value="">選擇</option>
+                    <td><select class="job-desc" onchange="window.triggerAutoSave()"><option value="">選擇</option>
                         ${jobOptions.map(opt => `<option value="${opt}" ${d.job==opt?'selected':''}>${opt}</option>`).join('')}</select></td>
                     <td><input type="text" class="remarks" onblur="window.handleTranslation(this)" value="${d.rem || ''}"></td>
                 `;
@@ -176,7 +209,6 @@
             }
         };
 
-        // 輔助函式 [cite: 58, 61, 62]
         window.generateOptions = (val) => {
             let opt = '';
             for(let h=0; h<24; h++) for(let m=0; m<60; m+=30) {
@@ -192,18 +224,20 @@
             const ts = row.querySelector('.day-type-select');
             sel.value === "13056" ? ts.classList.remove('hidden') : (ts.classList.add('hidden'), ts.value="平日");
             window.calculateRowHours(sel);
+            window.triggerAutoSave();
         };
 
-        // 翻譯邏輯保留 [cite: 33, 40]
         window.handleTranslation = async function(input) {
             const text = input.value.trim();
             if (!text || !/[\u0E00-\u0E7F]/.test(text) || text.includes('(')) return;
             const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-TW&dt=t&q=${encodeURIComponent(text)}`);
             const data = await res.json();
-            if (data && data[0]) input.value = `${text} (${data[0][0][0]})`;
+            if (data && data[0]) {
+                input.value = `${text} (${data[0][0][0]})`;
+                window.triggerAutoSave();
+            }
         };
 
-        // 匯出功能保留 [cite: 85, 93]
         window.exportToImage = async () => {
             const canvas = await html2canvas(document.getElementById('ot-form'), { scale: 2 });
             const link = document.createElement('a');
@@ -227,9 +261,13 @@
             XLSX.writeFile(wb, "加班單.xlsx");
         };
 
-        window.clearAllData = () => { if(confirm("確定要清空所有資料嗎？")) { document.getElementById('doc_date').value=""; window.initTable(); } };
+        window.clearAllData = () => { 
+            if(confirm("確定要清空所有資料嗎？這也會同步清空雲端資料。")) { 
+                document.getElementById('doc_date').value=""; 
+                window.initTable().then(() => window.performSave()); 
+            } 
+        };
 
-        document.getElementById('gen-time').innerText = new Date().toLocaleString();
         window.initTable();
     </script>
 </body>
