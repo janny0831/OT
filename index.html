@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大量科技 - 加班申請單 (Firebase 自動同步版)</title>
+    <title>加班申請單 - Firebase 自動同步版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Sans+Thai:wght@400;700&display=swap');
         body { font-family: 'Noto Sans TC', 'Noto Sans Thai', sans-serif; background-color: #f3f4f6; }
-        .form-container { background-color: white; padding: 30px; width: 1100px; margin: 20px auto; position: relative; }
+        .form-container { background-color: white; padding: 30px; width: 1100px; margin-left: auto; margin-right: auto; position: relative; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th, td { border: 1px solid #000; padding: 4px; text-align: center; vertical-align: middle; height: 60px; }
-        select, input { width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; text-align-last: center; appearance: none; cursor: pointer; font-size: 13px; }
-        input[type="date"]::-webkit-calendar-picker-indicator { position: absolute; left: 0; top: 0; width: 100%; height: 100%; cursor: pointer; opacity: 0; }
-        .type-select { font-size: 10px; background-color: #fffbeb; border: 1px solid #fcd34d !important; border-radius: 4px; height: 20px !important; margin-top: -4px; font-weight: bold; color: #92400e; }
+        th, td { border: 1px solid #000; padding: 4px; text-align: center; vertical-align: middle; height: 60px; overflow: visible; }
+        select, input { width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; text-align-last: center; appearance: none; -webkit-appearance: none; cursor: pointer; padding: 0; margin: 0; display: block; line-height: 1.2; font-size: 13px; }
+        input[type="date"]::-webkit-calendar-picker-indicator { position: absolute; left: 0; top: 0; width: 100%; height: 100%; margin: 0; padding: 0; cursor: pointer; opacity: 0; }
+        .type-select { font-size: 10px; background-color: #fffbeb; border: 1px solid #fcd34d !important; border-radius: 4px; height: 20px !important; margin-top: -4px; padding: 0 1px; font-weight: bold; color: #92400e; }
         .translating { background-color: #f0f9ff !important; color: #0369a1; font-style: italic; }
         .export-text-overlay { display: none; font-size: 10px; font-weight: bold; color: #b45309; background-color: #fffbeb; border: 1px solid #fcd34d; border-radius: 4px; width: 100%; padding: 1px 0; margin-top: -4px; }
         .sync-indicator { position: absolute; top: 10px; right: 10px; font-size: 12px; font-weight: bold; }
@@ -26,14 +26,14 @@
 
     <div class="max-w-7xl mx-auto">
         <div class="mb-6 flex flex-wrap gap-4 no-print-area items-center">
-            <button onclick="exportToImage()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded shadow-md transition">匯出圖片 (Export Image)</button>
-            <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow-md transition">匯出 Excel (Export XLSX)</button>
-            <button onclick="window.print()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded shadow-md transition">列印 (Print)</button>
-            <button onclick="clearAllData()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow-md transition">一鍵清空 (ล้างข้อมูล)</button>
+            <button onclick="exportToImage()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded shadow-md transition flex items-center gap-2">匯出圖片 (Export Image)</button>
+            <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow-md transition flex items-center gap-2">匯出 Excel (Export XLSX)</button>
+            <button onclick="window.print()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded shadow-md transition flex items-center gap-2">列印 (Print)</button>
+            <button onclick="clearAllData()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow-md transition flex items-center gap-2">一鍵清空 (ล้างข้อมูลทั้งหมด)</button>
             
             <div id="save-loader" class="flex items-center text-gray-500 text-sm italic ml-4 opacity-0 transition-opacity">
                 <svg class="animate-spin h-4 w-4 mr-2 text-indigo-500" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                同步儲存中...
+                同步中...
             </div>
         </div>
 
@@ -69,7 +69,7 @@
 
             <div class="mt-8 flex justify-between items-end px-2">
                 <div class="text-[11px] text-blue-700 font-bold">
-                    * 13056 扣除邏輯：平日 (12-13, 15-15:30) / 假日 (7:30-8, 12-13, 17-17:30)<br>
+                    * 13056 扣除邏輯：平日วันธรรมดา(12-13, 15-15:30) / 假日วันหยุด(7:30-8, 12-13, 17-17:30)<br>
                     * 其他工號扣除邏輯：(12-13, 17-17:30)
                 </div>
                 <div class="text-[10px] text-gray-400 text-right italic">最後同步: <span id="gen-time">-</span></div>
@@ -78,11 +78,9 @@
     </div>
 
     <script type="module">
-        // Firebase 模組化 SDK 導入
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-        // 您提供的 Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyB-PCNtremx3bmUZk-tk7LLo-zuIaD4yn8",
             authDomain: "thailand-26530.firebaseapp.com",
@@ -97,11 +95,9 @@
         const db = getFirestore(app);
         const docRef = doc(db, "ot_data", "current_sheet");
 
-        // 原始定義保留
         const empMap = { "13031": "阿凱Krai", "13056": "娜萌Mon" };
         const jobOptions = ["管理部/แผนกบริหาร", "支援資材部/แผนกวัสดุ", "支援生產部/แผนกผลิต"];
 
-        // 渲染表格 (載入資料用)
         window.renderTable = function(rowsData = []) {
             const tbody = document.getElementById('ot-tbody');
             tbody.innerHTML = ""; 
@@ -109,37 +105,41 @@
                 const d = rowsData[i] || {};
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><select class="emp-id" onchange="handleRowEmpChange(this); triggerAutoSave()"><option value="">選擇</option>${Object.keys(empMap).map(id => `<option value="${id}" ${d.id==id?'selected':''}>${id}</option>`).join('')}</select></td>
+                    <td><select class="emp-id" onchange="handleRowEmpChange(this); triggerAutoSave()"><option value="">選擇เลือก</option>${Object.keys(empMap).map(id => `<option value="${id}" ${d.id==id?'selected':''}>${id}</option>`).join('')}</select></td>
                     <td class="bg-gray-50"><input type="text" class="emp-name" readonly value="${empMap[d.id] || ''}"></td>
                     <td class="px-1 relative">
-                        <div class="day-container flex flex-col items-center justify-center h-full">
+                        <div class="day-container flex flex-col items-center justify-center h-full gap-0">
                             <input type="date" class="ot-day h-7" value="${d.dateVal || ''}" onchange="handleDateChange(this); triggerAutoSave()">
-                            <div class="w-full day-type-wrapper">
+                            <div class="w-full day-type-wrapper" style="margin-top: -2px;">
                                 <select class="day-type-select type-select ${d.id==='13056'?'':'hidden'}" onchange="calculateRowHours(this); triggerAutoSave()">
-                                    <option value="平日วันธรรมดา" ${d.type==='平日วันธรรมดา'?'selected':''}>平日</option>
-                                    <option value="假日วันหยุด" ${d.type==='假日วันหยุด'?'selected':''}>假日</option>
+                                    <option value="平日วันธรรมดา" ${d.type==='平日วันธรรมดา'?'selected':''}>平日วันธรรมดา</option>
+                                    <option value="假日วันหยุด" ${d.type==='假日วันหยุด'?'selected':''}>假日วันหยุด</option>
                                 </select>
                                 <div class="export-text-overlay"></div>
                             </div>
                         </div>
                     </td>
-                    <td class="w-24"><select class="start-time font-mono" onchange="calculateRowHours(this); triggerAutoSave()"><option value="">開始</option>${generateTimeOptions(d.start)}</select></td>
-                    <td class="w-24"><select class="end-time font-mono" onchange="calculateRowHours(this); triggerAutoSave()"><option value="">結束</option>${generateTimeOptions(d.end)}</select></td>
+                    <td class="w-24"><select class="start-time font-mono" onchange="calculateRowHours(this); triggerAutoSave()"><option value="">開始เริ่ม</option>${generateTimeOptions(d.start)}</select></td>
+                    <td class="w-24"><select class="end-time font-mono" onchange="calculateRowHours(this); triggerAutoSave()"><option value="">結束สิ้นสุด</option>${generateTimeOptions(d.end)}</select></td>
                     <td class="bg-blue-50"><input type="number" class="total-hours font-bold text-blue-700" value="${d.hours || ''}" readonly></td>
-                    <td><select class="job-desc" onchange="triggerAutoSave()"><option value="">選擇</option>${jobOptions.map(opt => `<option value="${opt}" ${d.job==opt?'selected':''}>${opt}</option>`).join('')}</select></td>
+                    <td><select class="job-desc" onchange="triggerAutoSave()"><option value="">選擇เลือก</option>${jobOptions.map(opt => `<option value="${opt}" ${d.job==opt?'selected':''}>${opt}</option>`).join('')}</select></td>
                     <td><input type="text" class="remarks" onblur="handleTranslation(this)" value="${d.rem || ''}"></td>
                 `;
                 tbody.appendChild(tr);
                 const otDay = tr.querySelector('.ot-day');
                 if(d.dateVal) handleDateChange(otDay);
-                if(d.id === "13056") handleRowEmpChange(tr.querySelector('.emp-id'));
+                if(d.id === "13056") {
+                    const dayContainer = tr.querySelector('.day-container');
+                    dayContainer.style.justifyContent = 'flex-start';
+                    dayContainer.style.paddingTop = '2px';
+                    otDay.style.marginTop = '0px';
+                }
             }
         };
 
-        // 自動儲存邏輯 (Debounce 防止頻繁寫入)
         let saveTimeout;
         window.triggerAutoSave = function() {
-            document.getElementById('sync-status').innerText = "○ 同步中...";
+            document.getElementById('sync-status').innerText = "○ 偵測變更中...";
             document.getElementById('sync-status').className = "sync-indicator text-amber-500";
             document.getElementById('save-loader').style.opacity = "1";
             clearTimeout(saveTimeout);
@@ -165,17 +165,13 @@
             try {
                 const now = new Date().toLocaleString();
                 await setDoc(docRef, { date: document.getElementById('doc_date').value, rows: rows, lastUpdated: now });
-                document.getElementById('sync-status').innerText = "● 雲端已同步";
+                document.getElementById('sync-status').innerText = "● 已同步至雲端";
                 document.getElementById('sync-status').className = "sync-indicator text-green-600";
                 document.getElementById('save-loader').style.opacity = "0";
                 document.getElementById('gen-time').innerText = now;
-            } catch (e) {
-                console.error(e);
-                document.getElementById('sync-status').innerText = "× 同步失敗";
-            }
+            } catch (e) { console.error(e); document.getElementById('sync-status').innerText = "× 同步失敗"; }
         };
 
-        // 初始化：讀取資料
         window.initTable = async function() {
             const snap = await getDoc(docRef);
             if (snap.exists()) {
@@ -183,12 +179,19 @@
                 document.getElementById('doc_date').value = d.date || "";
                 window.renderTable(d.rows || []);
                 document.getElementById('gen-time').innerText = d.lastUpdated || "-";
-            } else {
+            } else { window.renderTable([]); }
+        };
+
+        window.clearAllData = async function() {
+            if (confirm("確定要清空所有資料嗎？這也會同步清空雲端資料庫。")) {
+                document.getElementById('doc_date').value = "";
                 window.renderTable([]);
+                await window.performSave();
+                alert("已完成清空並同步。");
             }
         };
 
-        // 功能性函式保留 (與原始 4.txt 一致)
+        // 功能性函式保留
         window.generateTimeOptions = (val) => {
             let opt = '';
             for (let h=0; h<24; h++) for (let m=0; m<60; m+=30) {
@@ -207,12 +210,21 @@
         window.handleRowEmpChange = (sel) => {
             const row = sel.closest('tr');
             const empId = sel.value;
-            row.querySelector('.emp-name').value = empMap[empId] || "";
+            const nameInput = row.querySelector('.emp-name');
             const dayTypeSelect = row.querySelector('.day-type-select');
+            const dayContainer = row.querySelector('.day-container');
+            const otDayInput = row.querySelector('.ot-day');
+            nameInput.value = empMap[empId] || "";
             if (empId === "13056") {
                 dayTypeSelect.classList.remove('hidden');
+                dayContainer.style.justifyContent = 'flex-start';
+                dayContainer.style.paddingTop = '2px';
+                otDayInput.style.marginTop = '0px';
             } else {
                 dayTypeSelect.classList.add('hidden');
+                dayContainer.style.justifyContent = 'center';
+                dayContainer.style.paddingTop = '0px';
+                otDayInput.style.marginTop = '-2px';
                 dayTypeSelect.value = "平日วันธรรมดา";
             }
             window.calculateRowHours(sel);
@@ -230,10 +242,7 @@
                 let startMin = toMin(startStr);
                 let endMin = toMin(endStr);
                 if (endMin <= startMin) endMin += 1440;
-                // 扣除邏輯
-                let breaks = (empId === "13056") ?
-                    (dayType === "平日วันธรรมดา" ? [{s:720,e:780},{s:900,e:930}] : [{s:450,e:480},{s:720,e:780},{s:1020,e:1050}]) :
-                    [{s:720,e:780},{s:1020,e:1050}];
+                let breaks = (empId === "13056") ? (dayType === "平日วันธรรมดา" ? [{s:720,e:780},{s:900,e:930}] : [{s:450,e:480},{s:720,e:780},{s:1020,e:1050}]) : [{s:720,e:780},{s:1020,e:1050}];
                 let deduction = 0;
                 breaks.forEach(b => {
                     deduction += Math.max(0, Math.min(endMin, b.e) - Math.max(startMin, b.s));
@@ -256,20 +265,42 @@
             }
         };
 
-        window.clearAllData = async function() {
-            if (confirm("確定要清空並同步刪除雲端資料嗎？")) {
-                document.getElementById('doc_date').value = "";
-                window.renderTable([]);
-                await window.performSave();
-            }
-        };
-
-        // 匯出功能保留與優化 (匯出時處理隱藏欄位)
         window.exportToImage = async () => {
             const element = document.getElementById('ot-form');
+            const rows = document.querySelectorAll('#ot-tbody tr');
+            rows.forEach(row => {
+                const dayInput = row.querySelector('.ot-day');
+                const select = row.querySelector('.day-type-select');
+                const overlay = row.querySelector('.export-text-overlay');
+                if (!select.classList.contains('hidden')) {
+                    overlay.innerText = select.options[select.selectedIndex].text;
+                    overlay.style.display = 'block';
+                    select.style.visibility = 'hidden';
+                }
+                if (dayInput.value) {
+                    const disp = dayInput.getAttribute('data-display');
+                    const textNode = document.createElement('div');
+                    textNode.className = 'temp-date-text';
+                    textNode.innerText = disp;
+                    textNode.style.position = 'absolute';
+                    textNode.style.top = '10px';
+                    textNode.style.width = '100%';
+                    textNode.style.fontSize = '13px';
+                    textNode.style.zIndex = '10';
+                    dayInput.parentNode.appendChild(textNode);
+                    dayInput.style.visibility = 'hidden';
+                }
+            });
             const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+            rows.forEach(row => {
+                row.querySelector('.day-type-select').style.visibility = 'visible';
+                row.querySelector('.export-text-overlay').style.display = 'none';
+                const temp = row.querySelector('.temp-date-text');
+                if(temp) temp.remove();
+                row.querySelector('.ot-day').style.visibility = 'visible';
+            });
             const link = document.createElement('a');
-            link.download = `加班單_${document.getElementById('doc_date').value}.png`;
+            link.download = `加班單_${document.getElementById('doc_date').value || 'New'}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
         };
@@ -281,16 +312,8 @@
                 if (id) {
                     const dayInput = row.querySelector('.ot-day');
                     const dayVal = dayInput.getAttribute('data-display') || dayInput.value;
-                    dataRows.push([
-                        id, 
-                        row.querySelector('.emp-name').value, 
-                        dayVal, 
-                        row.querySelector('.start-time').value, 
-                        row.querySelector('.end-time').value, 
-                        row.querySelector('.total-hours').value, 
-                        row.querySelector('.job-desc').value, 
-                        row.querySelector('.remarks').value
-                    ]);
+                    const dayType = row.querySelector('.day-type-select').value;
+                    dataRows.push([id, row.querySelector('.emp-name').value, id==="13056" ? `${dayVal} (${dayType})` : dayVal, row.querySelector('.start-time').value, row.querySelector('.end-time').value, row.querySelector('.total-hours').value, row.querySelector('.job-desc').value, row.querySelector('.remarks').value]);
                 }
             });
             const tableData = [["大量科技股份有限公司"], ["加班申請單"], [`日期: ${document.getElementById('doc_date').value}`, "", "", "", "", "", "單位：管理部"], ["工號", "姓名", "月/日", "開始", "結束", "時數", "內容", "備註"], ...dataRows];
